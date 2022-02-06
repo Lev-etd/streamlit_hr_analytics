@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  generate:
+    build: ./
+    environment:
+      - DEVICE=cuda
+    deploy:
+      resources:
+        reservations:
+          devices:
+          - capabilities: [gpu]
