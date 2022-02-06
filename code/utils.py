@@ -1,5 +1,6 @@
 import os
 import subprocess
+import pathlib
 
 from asrecognition import ASREngine
 from pyaspeller import YandexSpeller
@@ -11,6 +12,7 @@ from reportlab.pdfgen.canvas import Canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.units import mm
 from textwrap import wrap
+
 
 # import nemo.collections.asr as nemo_asr
 
@@ -86,9 +88,18 @@ tokenizer = BertTokenizerFast.from_pretrained('blanchefort/rubert-base-cased-sen
 model = AutoModelForSequenceClassification.from_pretrained('blanchefort/rubert-base-cased-sentiment',
                                                            return_dict=True)
 
+if not pathlib.Path.exists(pathlib.Path(f"{root}/uploaded_videos")):
+    os.makedirs(f"{root}/uploaded_videos")
+
+if not pathlib.Path.exists(pathlib.Path(f"{root}/generated_pdfs/")):
+    os.makedirs(f"{root}/generated_pdfs/")
+
+if not pathlib.Path.exists(pathlib.Path(f"{root}/converted_audio")):
+    os.makedirs(f"{root}/converted_audio")
+
 
 def save_file(video):
-    with open(os.path.join("uploaded_videos", video.name), "wb") as f:
+    with open(os.path.join(f"{root}/uploaded_videos", video.name), "wb") as f:
         f.write(video.getbuffer())
 
 
@@ -99,8 +110,9 @@ def run_analysis(path_to_video, path_to_audio):
     :param path_to_audio: path to audio
     :return: fully processed text
     """
-    cmd = f"ffmpeg -i {str(path_to_video)} -ab 160k -ac 2 -ar 16000 -vn {str(path_to_audio)}"
-    subprocess.run(cmd, shell=True)
+    if not pathlib.Path.exists(pathlib.Path(path_to_audio)):
+        cmd = f"ffmpeg -i {str(path_to_video)} -ab 160k -ac 2 -ar 16000 -vn {str(path_to_audio)}"
+        subprocess.run(cmd, shell=True)
 
     audio_paths = [str(path_to_audio)]
     transcriptions = asr.transcribe(audio_paths)
@@ -131,12 +143,14 @@ def generate_pdf(text, emotion_info, video_name, ind_of_video):
     canvas = Canvas(f'{root}/generated_pdfs/{video_name}.pdf', pagesize=(210 * mm, 297 * mm))
     t = canvas.beginText(13 * mm, 280 * mm)
     t.setFont(faceName + '1251', 12)
+    emotion_information = f'Речь в видео на {round((emotion_info[0][0] * 100).item(), 2)}% нейтральна, на {round((emotion_info[0][1] * 100).item(), 2)}% позитивна и на {round((emotion_info[0][2] * 100).item(), 2)}% негативна.'
     text = text
     wrapped_text = "\n".join(wrap(text, 75))
+    wrapped_text = wrapped_text + "\n" + emotion_information
     t.textLines(wrapped_text)
     canvas.setFont(faceName + '1251', 16)
-    canvas.drawString(13 * mm, 288 * mm, f'Текстовая расшифровка видео {video_name} под номером № {ind_of_video}')
-    canvas.drawString(13 * mm, 150 * mm, f'Речь в видео на {round((emotion_info[0][0] * 100).item(), 2)}% нейтральна, на {round((emotion_info[0][1] * 100).item(), 2)}% позитивна и на {round((emotion_info[0][2] * 100).item(), 2)}% негативна')
+    canvas.drawString(13 * mm, 288 * mm, f'Текстовая расшифровка видео {video_name} под номером № {ind_of_video + 1}.')
+    # canvas.drawString(13 * mm, 150 * mm, f'Речь в видео на {round((emotion_info[0][0] * 100).item(), 2)}% нейтральна, на {round((emotion_info[0][1] * 100).item(), 2)}% позитивна и на {round((emotion_info[0][2] * 100).item(), 2)}% негативна')
     canvas.drawText(t)
     canvas.save()
 

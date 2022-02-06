@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 import pathlib
-from pathlib import Path
+import pathlib
 
 from utils import save_file, run_analysis, generate_pdf, run_emotion_analysis
 
@@ -27,7 +27,7 @@ def read_file_questions():
 
 if __name__ == "__main__":
     # @st.cache
-    if Path.exists(pathlib.Path(f'{root}/question_list')):
+    if pathlib.Path.exists(pathlib.Path(f'{root}/question_list')):
         pass
     else:
         with open(f'{root}/question_list', 'w'):
@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
             text = run_analysis(path_to_video=file_vid, path_to_audio=file_audio)
             predicted, predicted_logits = run_emotion_analysis(text)
-            generate_pdf(text=text, emotion_info=predicted_logits, video_name=video.name, ind_of_video=ind)
+            generate_pdf(text=text, emotion_info=predicted_logits, video_name=video.name.split('.')[0], ind_of_video=ind)
 
     new_question = st.text_input(label='Напишите новый вопрос сюда, чтобы добавить в файл')
     col1, col2, col3 = st.columns([3, 2, 2])
